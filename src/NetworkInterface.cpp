@@ -166,7 +166,7 @@ void NetworkInterface::init() {
     sprobe_interface = false, has_vlan_packets = false,
     pcap_datalink_type = 0, cpu_affinity = -1 /* no affinity */,
       inline_interface = false, running = false, interfaceStats = NULL,
-      tooManyFlowsAlertTriggered = tooManyHostsAlertTriggered = false, 
+      tooManyFlowsAlertTriggered = tooManyHostsAlertTriggered = false,
     has_mesh_networks_traffic = false, pkt_dumper = NULL;
   pollLoopCreated = false, bridge_interface = false;
   if(ntop && ntop->getPrefs() && ntop->getPrefs()->are_taps_enabled())
@@ -183,7 +183,7 @@ void NetworkInterface::init() {
   memset(lastMinuteTraffic, 0, sizeof(lastMinuteTraffic));
   resetSecondTraffic();
 
-  db = NULL; 
+  db = NULL;
 #ifdef NTOPNG_PRO
   policer = NULL;
 #endif
@@ -528,7 +528,7 @@ Flow* NetworkInterface::getFlow(u_int8_t *src_eth, u_int8_t *dst_eth,
       if(inIndex && ret->get_cli_host()) ret->get_cli_host()->setDeviceIfIdx(deviceIP, inIndex);
       /*
 	We have decided to set only ingress traffic to make sure we do not mix truth with invalid data
-	if(outIndex && ret->get_srv_host()) ret->get_srv_host()->setDeviceIfIdx(deviceIP, outIndex); 
+	if(outIndex && ret->get_srv_host()) ret->get_srv_host()->setDeviceIfIdx(deviceIP, outIndex);
       */
       return(ret);
     } else {
@@ -547,12 +547,12 @@ Flow* NetworkInterface::getFlow(u_int8_t *src_eth, u_int8_t *dst_eth,
 void NetworkInterface::triggerTooManyFlowsAlert() {
   if(!tooManyFlowsAlertTriggered) {
     char alert_msg[512];
-  
+
     snprintf(alert_msg, sizeof(alert_msg),
 	     "Interface <A HREF='%s/lua/if_stats.lua?id=%d'>%s</A> has too many flows. Please extend the --max-num-flows/-X command line option",
 	     ntop->getPrefs()->get_http_prefix(),
 	     id, get_name());
-    
+
     ntop->getRedis()->queueAlert(alert_level_error, alert_on, alert_app_misconfiguration, alert_msg);
     tooManyFlowsAlertTriggered = true;
   }
@@ -563,12 +563,12 @@ void NetworkInterface::triggerTooManyFlowsAlert() {
 void NetworkInterface::triggerTooManyHostsAlert() {
   if(!tooManyHostsAlertTriggered) {
     char alert_msg[512];
-  
+
     snprintf(alert_msg, sizeof(alert_msg),
 	     "Interface <A HREF='%s/lua/if_stats.lua?id=%d'>%s</A> has too many hosts. Please extend the --max-num-hosts/-x command line option",
 	     ntop->getPrefs()->get_http_prefix(),
 	     id, get_name());
-    
+
     ntop->getRedis()->queueAlert(alert_level_error, alert_on, alert_app_misconfiguration, alert_msg);
     tooManyHostsAlertTriggered = true;
   }
@@ -596,7 +596,7 @@ void NetworkInterface::processFlow(ZMQ_Flow *zflow) {
 
 #ifdef DEBUG
     ntop->getTrace()->traceEvent(TRACE_NORMAL, "[first=%u][last=%u][duration: %u][drift: %d][now: %u][remote: %u]",
-				 zflow->first_switched,  zflow->last_switched,  
+				 zflow->first_switched,  zflow->last_switched,
 				 zflow->last_switched-zflow->first_switched, drift,
 				 now, last_pkt_rcvd_remote);
 #endif
@@ -607,7 +607,7 @@ void NetworkInterface::processFlow(ZMQ_Flow *zflow) {
       last_pkt_rcvd_remote = zflow->last_switched;
 
 #ifdef DEBUG
-    ntop->getTrace()->traceEvent(TRACE_NORMAL, "[first=%u][last=%u][duration: %u]", 
+    ntop->getTrace()->traceEvent(TRACE_NORMAL, "[first=%u][last=%u][duration: %u]",
 				 zflow->first_switched,  zflow->last_switched,  zflow->last_switched- zflow->first_switched);
 #endif
   }
@@ -645,7 +645,7 @@ void NetworkInterface::processFlow(ZMQ_Flow *zflow) {
   flow->updateInterfaceLocalStats(src2dst_direction,
 			     zflow->pkt_sampling_rate*(zflow->in_pkts+zflow->out_pkts),
 			     zflow->pkt_sampling_rate*(zflow->in_bytes+zflow->out_bytes));
-  
+
   incStats(now, zflow->src_ip.isIPv4() ? ETHERTYPE_IP : ETHERTYPE_IPV6,
 	   flow->get_detected_protocol().protocol,
 	   zflow->pkt_sampling_rate*(zflow->in_bytes + zflow->out_bytes),
@@ -728,12 +728,12 @@ bool NetworkInterface::processPacket(const struct bpf_timeval *when,
   bool is_fragment = false, new_flow;
   bool pass_verdict = true;
   int a_shaper_id = DEFAULT_SHAPER_ID, b_shaper_id = DEFAULT_SHAPER_ID; /* Default */
-		       
+
  decode_ip:
   if(iph != NULL) {
     /* IPv4 */
     if(ipsize < 20) {
-      incStats(when->tv_sec, ETHERTYPE_IP, NDPI_PROTOCOL_UNKNOWN, 
+      incStats(when->tv_sec, ETHERTYPE_IP, NDPI_PROTOCOL_UNKNOWN,
 	       rawsize, 1, 24 /* 8 Preamble + 4 CRC + 12 IFG */);
       return(pass_verdict);
     }
@@ -814,11 +814,11 @@ bool NetworkInterface::processPacket(const struct bpf_timeval *when,
     memcpy(&gre, l4, sizeof(struct grev1_header));
     gre.flags_and_version = ntohs(gre.flags_and_version);
     gre.proto = ntohs(gre.proto);
-    
+
     if(gre.flags_and_version & (GRE_HEADER_CHECKSUM | GRE_HEADER_ROUTING)) offset += 4;
     if(gre.flags_and_version & GRE_HEADER_KEY)      offset += 4;
     if(gre.flags_and_version & GRE_HEADER_SEQ_NUM)  offset += 4;
-    
+
     if(gre.proto == ETHERTYPE_IP) {
       iph = (struct ndpi_iphdr*)(l4 + offset), ip6 = NULL;
       goto decode_ip;
@@ -993,14 +993,14 @@ bool NetworkInterface::processPacket(const struct bpf_timeval *when,
     flow->processDetectedProtocol(), *shaped = false;
     pass_verdict = flow->isPassVerdict();
     flow->getFlowShapers(src2dst_direction, &a_shaper_id, &b_shaper_id, ndpiProtocol);
-    
+
 #ifdef NTOPNG_PRO
     if(pass_verdict) {
       pass_verdict = passShaperPacket(a_shaper_id, b_shaper_id, (struct pcap_pkthdr*)h);
       if(!pass_verdict) *shaped = true;
     }
 #endif
-    
+
     if(pass_verdict)
       incStats(when->tv_sec, iph ? ETHERTYPE_IP : ETHERTYPE_IPV6,
 	       flow->get_detected_protocol().protocol,
@@ -1693,7 +1693,7 @@ void NetworkInterface::updateHostsL7Policy(patricia_tree_t *ptree) {
 static bool update_flow_l7_policy(GenericHashEntry *node, void *user_data) {
   patricia_tree_t *ptree = (patricia_tree_t*)user_data;
   Flow *f = (Flow*)node;
-  
+
   if((ptree == NULL)
      || (f->get_cli_host() && f->get_cli_host()->match(ptree))
      || (f->get_srv_host() && f->get_srv_host()->match(ptree)))
@@ -1756,12 +1756,71 @@ bool NetworkInterface::restoreHost(char *host_ip) {
   if(!h) return(false);
 
   if(!hosts_hash->add(h)) {
-    //ntop->getTrace()->traceEvent(TRACE_WARNING, "Too many hosts in interface %s", ifname);
+    ntop->getTrace()->traceEvent(TRACE_WARNING, "Too many hosts in interface %s", ifname);
     delete h;
     return(false);
   }
 
   return(true);
+}
+
+bool NetworkInterface::restoreHost(u_int8_t mac[6], u_int16_t vlanId, IpAddress *host_ip) {
+  Host *h = new Host(this, mac, vlanId, host_ip);
+
+  if(!h){
+      ntop->getTrace()->traceEvent(TRACE_WARNING, "Fail to restore host %s on interface %s", host_ip, ifname);
+      return(false);
+  }
+
+  if(!hosts_hash->add(h)) {
+    ntop->getTrace()->traceEvent(TRACE_WARNING, "Too many hosts in interface %s", ifname);
+    delete h;
+    return(false);
+  }
+
+  char IP[64];
+  ntop->getTrace()->traceEvent(TRACE_NORMAL, "Host %s in interface %s restored", host_ip->print(IP, 64), ifname);
+  return(true);
+}
+
+/* **************************************** */
+
+void NetworkInterface::restoreLocalHosts() {
+    vector<vector<string> > strVec;
+    u_int8_t hMac[6] = { 0 };
+    u_int16_t hVlanId;
+    char redisKey[128];
+    IpAddress *ipAddress;
+
+    sql_select_hosts(strVec);
+    ntop->getTrace()->traceEvent(TRACE_ERROR, "Restoring %zu hosts for interface %s", strVec.size(), ifname);
+
+    for(u_int16_t h = 0; h < strVec.size(); h++){
+        char *json;
+        memset(&redisKey[0], 0, sizeof(redisKey));
+
+        hVlanId = atoi(strVec[h][COLUMN_VLAN].c_str());
+        snprintf(redisKey, sizeof(redisKey), "%s.%d.json", (char *)strVec[h][COLUMN_IP].c_str(), hVlanId);
+        if((json = (char*)malloc(HOST_MAX_SERIALIZED_LEN * sizeof(char))) == NULL){
+            ntop->getTrace()->traceEvent(TRACE_ERROR, "Unable to allocate memory to deserialize %s", redisKey);
+        }
+        else if(!ntop->getRedis()->get(redisKey, json, HOST_MAX_SERIALIZED_LEN)){
+            ntop->getTrace()->traceEvent(TRACE_NORMAL, "Start restoring %s", redisKey);
+            ipAddress = new IpAddress((char *)strVec[h][COLUMN_IP].c_str());
+            sscanf((char *)strVec[h][COLUMN_MAC].c_str(), "%02X:%02X:%02X:%02X:%02X:%02X",
+                    &hMac[0], &hMac[1], &hMac[2], &hMac[3], &hMac[4], &hMac[5]);
+            restoreHost(hMac, hVlanId, ipAddress);
+        }
+        if(json){
+            free(json);
+        }
+    }
+}
+
+/* **************************************************** */
+
+bool NetworkInterface::sql_select_hosts(vector<vector<string> > &strVec){
+    return get_db()->select_hosts(ifname, strVec);
 }
 
 /* **************************************************** */
@@ -2145,7 +2204,7 @@ int NetworkInterface::getFlows(lua_State* vm,
 
       lua_pushnumber(vm, num + 1);
       lua_insert(vm, -2);
-      lua_settable(vm, -3); 
+      lua_settable(vm, -3);
 
       if(++num >= (int)maxHits) break;
 
@@ -2183,12 +2242,12 @@ int NetworkInterface::getFlows(lua_State* vm,
   int (*sorter)(const void *_a, const void *_b);
   char sortColumn[32];
   bool highDetails;
-  
+
   if(p == NULL) {
     ntop->getTrace()->traceEvent(TRACE_WARNING, "Unable to return results with a NULL paginator");
     return(-1);
   }
-  
+
   highDetails = p->detailedResults() ? true : (location == location_local_only || (p && p->maxHits() != CONST_MAX_NUM_HITS)) ? true : false;
 
   retriever.pag = p;
@@ -2370,7 +2429,7 @@ int NetworkInterface::sortHosts(struct flowHostRetriever *retriever,
 
 int NetworkInterface::getActiveHostsList(lua_State* vm, patricia_tree_t *allowed_hosts,
 					 bool host_details, LocationPolicy location,
-					 char *countryFilter, 
+					 char *countryFilter,
 					 u_int16_t *vlan_id, char *osFilter, u_int32_t *asnFilter, int16_t *networkFilter,
 					 char *sortColumn, u_int32_t maxHits,
 					 u_int32_t toSkip, bool a2zSortOrder) {
@@ -2414,7 +2473,7 @@ int NetworkInterface::getActiveHostsList(lua_State* vm, patricia_tree_t *allowed
      retriever.sorter == column_country ||
      retriever.sorter == column_os) {
     for(u_int i=0; i<retriever.maxNumEntries; i++)
-      if(retriever.elems[i].stringValue) 
+      if(retriever.elems[i].stringValue)
 	free(retriever.elems[i].stringValue);
   }
 
@@ -2489,7 +2548,7 @@ int NetworkInterface::getActiveHostsGroup(lua_State* vm, patricia_tree_t *allowe
      retriever.sorter == column_country ||
      retriever.sorter == column_os) {
     for(u_int i=0; i<retriever.maxNumEntries; i++)
-      if(retriever.elems[i].stringValue) 
+      if(retriever.elems[i].stringValue)
 	free(retriever.elems[i].stringValue);
   }
 
@@ -2674,7 +2733,7 @@ void NetworkInterface::getnDPIProtocols(lua_State *vm) {
 static bool num_flows_state_walker(GenericHashEntry *node, void *user_data) {
   Flow *flow = (Flow*)node;
   u_int32_t *num_flows = (u_int32_t*)user_data;
-  
+
   switch(flow->getFlowState()) {
   case flow_state_syn:
     num_flows[1]++;
@@ -2701,7 +2760,7 @@ static bool num_flows_state_walker(GenericHashEntry *node, void *user_data) {
 static bool num_flows_walker(GenericHashEntry *node, void *user_data) {
   Flow *flow = (Flow*)node;
   u_int32_t *num_flows = (u_int32_t*)user_data;
-  
+
   num_flows[flow->get_detected_protocol().protocol]++;
 
   return(false /* keep walking */);
@@ -3365,7 +3424,7 @@ void NetworkInterface::setRemoteStats(char *name, char *address, u_int32_t speed
   } else {
     remBytes -= zmq_initial_bytes, remPkts -= zmq_initial_pkts;
 
-    ntop->getTrace()->traceEvent(TRACE_INFO, "[%s][bytes=%u/%u (%d)][pkts=%u/%u (%d)]", 
+    ntop->getTrace()->traceEvent(TRACE_INFO, "[%s][bytes=%u/%u (%d)][pkts=%u/%u (%d)]",
 				 ifname, remBytes, ethStats.getNumBytes(), remBytes-ethStats.getNumBytes(),
 				 remPkts, ethStats.getNumPackets(), remPkts-ethStats.getNumPackets());
     ethStats.setNumBytes(remBytes), ethStats.setNumPackets(remPkts);
@@ -3377,14 +3436,14 @@ void NetworkInterface::setRemoteStats(char *name, char *address, u_int32_t speed
 void NetworkInterface::processInterfaceStats(sFlowInterfaceStats *stats) {
   if(interfaceStats == NULL)
     interfaceStats = new InterfaceStatsHash(NUM_IFACE_STATS_HASH);
-  
+
   if(interfaceStats) {
     char a[64];
-    
-    ntop->getTrace()->traceEvent(TRACE_INFO, "[%s][ifIndex=%u]", 
-				 Utils::intoaV4(stats->deviceIP, a, sizeof(a)), 
+
+    ntop->getTrace()->traceEvent(TRACE_INFO, "[%s][ifIndex=%u]",
+				 Utils::intoaV4(stats->deviceIP, a, sizeof(a)),
 				 stats->ifIndex);
-    
+
     interfaceStats->set(stats->deviceIP, stats->ifIndex, stats);
   }
 }

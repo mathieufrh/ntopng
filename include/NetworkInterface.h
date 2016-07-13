@@ -121,7 +121,7 @@ class NetworkInterface {
   bool isNumber(const char *str);
   bool validInterface(char *name);
   bool isInterfaceUp(char *name);
-  bool checkIdle();  
+  bool checkIdle();
   void dumpPacketDisk(const struct pcap_pkthdr *h, const u_char *packet, dump_reason reason);
   void dumpPacketTap(const struct pcap_pkthdr *h, const u_char *packet, dump_reason reason);
   void triggerTooManyHostsAlert();
@@ -157,7 +157,7 @@ class NetworkInterface {
   inline void  setTimeLastPktRcvd(time_t t)    { last_pkt_rcvd = t; };
   inline char* get_ndpi_proto_name(u_int id)   { return(ndpi_get_proto_name(ndpi_struct, id));   };
   inline int   get_ndpi_proto_id(char *proto)  { return(ndpi_get_protocol_id(ndpi_struct, proto));   };
-  inline char* get_ndpi_proto_breed_name(u_int id) { 
+  inline char* get_ndpi_proto_breed_name(u_int id) {
     return(ndpi_get_proto_breed_name(ndpi_struct, ndpi_get_proto_breed(ndpi_struct, id))); };
   inline void setRemoteIfname(char *name)      { if(!remoteIfname)      remoteIfname = strdup(name);   };
   inline void setRemoteIfIPaddr(char *ip)      { if(!remoteIfIPaddr)    remoteIfIPaddr = strdup(ip);   };
@@ -202,6 +202,16 @@ class NetworkInterface {
   inline void set_datalink(int l)  { pcap_datalink_type = l;     };
   inline int isRunning()	   { return running;             };
   bool restoreHost(char *host_ip);
+  bool restoreHost(u_int8_t mac[6], u_int16_t _vlanId, IpAddress *host_ip);
+  /**@brief Restore every hosts that are listed in the DB (for this interface) and exists in redis.
+   *
+   * This function is called for every interfaces when Ntopng starts.
+   *
+   * @caller Ntop::start()
+   * @tags network, interface, restore, local, hosts, redis, database
+   */
+  void restoreLocalHosts();
+  bool sql_select_hosts(vector<vector<string> > &strVec);
   u_int printAvailableInterfaces(bool printHelp, int idx, char *ifname, u_int ifname_len);
   void findFlowHosts(u_int16_t vlan_id,
 		     u_int8_t src_mac[6], IpAddress *_src_ip, Host **src,
@@ -344,7 +354,7 @@ class NetworkInterface {
   inline bool checkProfileSyntax(char *filter) { return(flow_profiles ? flow_profiles->checkProfileSyntax(filter) : false); }
   bool passShaperPacket(int a_shaper_id, int b_shaper_id, struct pcap_pkthdr *h);
 #endif
-  void setRemoteStats(char *name, char *address, u_int32_t speedMbit, 
+  void setRemoteStats(char *name, char *address, u_int32_t speedMbit,
 		      char *remoteProbeAddress, char *remoteProbePublicAddress,
 		      u_int64_t remBytes, u_int64_t remPkts, u_int32_t remote_time,
 		      u_int32_t last_pps, u_int32_t last_bps);
@@ -353,6 +363,7 @@ class NetworkInterface {
   inline bool createDBSchema() {if(db) {return db->createDBSchema();} return false;};
   inline void getFlowDevices(lua_State *vm) { if(interfaceStats) interfaceStats->luaDeviceList(vm); else lua_newtable(vm); };
   inline void getFlowDeviceInfo(lua_State *vm, u_int32_t deviceIP) { if(interfaceStats) interfaceStats->luaDeviceInfo(vm, deviceIP); else lua_newtable(vm); };
+  inline DB *get_db(){return(db);}
 };
 
 #endif /* _NETWORK_INTERFACE_H_ */

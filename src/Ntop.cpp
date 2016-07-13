@@ -294,6 +294,7 @@ void Ntop::start() {
   loadLocalInterfaceAddress();
 
   for(int i=0; i<num_defined_interfaces; i++) {
+	iface[i]->restoreLocalHosts();
     iface[i]->allocateNetworkStats();
     iface[i]->startPacketPolling();
   }
@@ -910,12 +911,12 @@ bool Ntop::changeAllowedNets(char *username, char *allowed_nets) const {
 bool Ntop::changeAllowedIfname(char *username, char *allowed_ifname) const {
   /* Add as exception :// */
   char *column_slash = strstr(allowed_ifname, ":__");
-  
+
   if (username == NULL || username[0] == '\0')
     return false;
-  
+
   if(column_slash)
-    column_slash[1] = column_slash[2] = '/';  
+    column_slash[1] = column_slash[2] = '/';
 
   ntop->getTrace()->traceEvent(TRACE_DEBUG,
 			       "Changing allowed ifname to %s for %s",
@@ -1145,7 +1146,7 @@ NetworkInterface* Ntop::getNetworkInterface(lua_State* vm, const char *name) {
   }
 
   /* if here, name is a string */
-  for(int i=0; i<num_defined_interfaces; i++) {    
+  for(int i=0; i<num_defined_interfaces; i++) {
     if(strstr(name, iface[i]->get_name()))
       return isInterfaceAllowed(vm, iface[i]->get_name()) ? iface[i] : NULL;
   }

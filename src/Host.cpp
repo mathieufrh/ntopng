@@ -211,7 +211,7 @@ void Host::initialize(u_int8_t mac[6], u_int16_t _vlanId, bool init_all) {
 				       "Unable to allocate memory to deserialize %s", redis_key);
 	else if (!ntop->getRedis()->get(redis_key, json, HOST_MAX_SERIALIZED_LEN)){
 	  /* Found saved copy of the host so let's start from the previous state */
-	  // ntop->getTrace()->traceEvent(TRACE_NORMAL, "%s => %s", redis_key, json);
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL, "%s => %s", redis_key, json);
 	  ntop->getTrace()->traceEvent(TRACE_INFO, "Deserializing %s", redis_key);
 	  deserialize(json, redis_key);
 	}
