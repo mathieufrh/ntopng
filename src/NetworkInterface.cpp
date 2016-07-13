@@ -1786,6 +1786,7 @@ bool NetworkInterface::restoreHost(u_int8_t mac[6], u_int16_t vlanId, IpAddress 
 /* **************************************** */
 
 void NetworkInterface::restoreLocalHosts() {
+	ntop->getTrace()->traceEvent(TRACE_NORMAL, "RESTORING HOST FOR INTERFACE %s", ifname);
     vector<vector<string> > strVec;
     u_int8_t hMac[6] = { 0 };
     u_int16_t hVlanId;
