@@ -86,14 +86,12 @@ class Utils {
   static bool isPrintableChar(u_char c);
   static const char* flowstatus2str(FlowStatus s);
 
-  /**@brief Try to ping a host and return the delay.
+  /**@brief Try to run a nmap against a host and return the report.
    *
-   * @params target The IP address or host name to ping.
-   * @return The ping delay computed, 0 or a negative number if ping fails.
-   *
-   * Works with IP address or host name.
+   * @params target The IP address or host name to run nmap against.
+   * @return The nmap report, an empty string in nmap fails.
    */
-  static int ping(string target);
+  static string nmap(const char *ip);
 };
 
 #endif /* _UTILS_H_ */

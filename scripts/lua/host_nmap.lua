@@ -12,5 +12,5 @@ sendHTTPHeader('text/html; charset=iso-8859-1')
 interface.select(ifname)
 host_info = url2hostinfo(_GET)
 
-pingTime = interface.pingHost(host_info["host"], host_info["vlan"])
-if(pingTime and pingTime > 0) then print(pingTime) else print(0) end
+nmapReport = interface.nmapHost(host_info["host"], host_info["vlan"])
+if(nmapReport and nmapReport ~= "") then print(nmapReport) else print("") end

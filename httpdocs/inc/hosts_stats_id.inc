@@ -79,7 +79,7 @@ function row_update(host_key) {
   });
 }
 
-function ping_host(ip, vlan) {
+function nmap_host(ip, vlan) {
   if(vlan == "0"){
     var hostip = ip.replace(/\./g, "__");
   }
@@ -87,10 +87,10 @@ function ping_host(ip, vlan) {
     var hostip = ip.replace(/\./g, "__") + "_" + String(vlan);
   }
   var hostInfo = hostkey2hostInfo(ip);
-  var url = "/lua/host_ping.lua?host="+hostInfo[0]+"&vlan="+String(vlan);
+  var url = "/lua/host_nmap.lua?host="+hostInfo[0]+"&vlan="+String(vlan);
   
-  $("#hostModalTitle").html("Ping");
-  $("#hostModalBody").html("<h3>Pinging host " + hostInfo[0] + "...</h3>");
+  $("#hostModalTitle").html("Nmap");
+  $("#hostModalBody").html("<h3>Runing nmap for host " + hostInfo[0] + "...</h3>");
   $("#hostModal").modal({
     "backdrop" : "true",
     "keyboard" : "true",
@@ -102,18 +102,18 @@ function ping_host(ip, vlan) {
     url: url,
     cache: false,
     success: function(content, status) {
-        if(content > 0){ 
-            $("#hostModalBody").html("<div class='alert alert-success'><strong>Success!</strong></div><h3>Pinging host " + hostInfo[0] + "</h3><h4>Time = " + content / 1000 + " ms</h4>");
+        if(content != ""){
+            $("#hostModalBody").html("<div class='alert alert-success'><strong>Success!</strong></div><h3>Runing nmap for host " + hostInfo[0] + "</h3><div class='well well-sm' font-family='monospace'>" + content.replace(new RegExp('\r?\n','g'), '<br />') + "</div>");
         }
         else{
-            $("#hostModalBody").html("<div class='alert alert-danger'><strong>Fail!</strong></div><h3>Host cannot be reach in less than one second.</h3>");
+            $("#hostModalBody").html("<div class='alert alert-danger'><strong>Fail!</strong></div><h3>nmap fail.</h3>");
         }
     },  
     error: function(content) {
-      console.log("ping_host: error");
-      $("#hostModalBody").html("<h3>Host cannot be reach in less than one second.</h3>");
+      console.log("nmap_host: error");
+      $("#hostModalBody").html("<h3>nmap fail.</h3>");
     }   
-  }); 
+  });
 }
 
 // Updating function

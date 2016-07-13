@@ -112,7 +112,7 @@ else
     end
 
     print("\"column_actions\" : \""
-        .. "<i id='pingIcon' data-toggle='modal' data-target='#pingModal' onmouseover='' style='cursor: pointer; color: black' class='fa fa-bullhorn' data-toggle='tooltip' title='Send a ping request' onclick='ping_host(&quot;".. host["ip"] .. "&quot;," .. stringVlan .. ")' /> ")
+        .. "<i id='nmapIcon' data-toggle='modal' data-target='#nmapModal' onmouseover='' style='cursor: pointer; color: black' class='fa fa-eye' data-toggle='tooltip' title='Run an nmap' onclick='nmap_host(&quot;" .. host["ip"] .. "&quot;," .. stringVlan .. ")' />")
     print("\" } ")
 
 end
