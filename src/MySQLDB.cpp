@@ -599,9 +599,10 @@ bool MySQLDB::connectToDB(MYSQL *conn, bool select_db) {
 
   db_operational = true;
 
-  ntop->getTrace()->traceEvent(TRACE_NORMAL, "Succesfully connected to MySQL [%s:%s] for interface %s",
+  ntop->getTrace()->traceEvent(TRACE_NORMAL, "Succesfully connected to MySQL [%s:%s:%s] for interface %s",
 			       ntop->getPrefs()->get_mysql_host(),
 			       ntop->getPrefs()->get_mysql_user(),
+				   dbname,
 			       iface->get_name());
 
   if(m) m->unlock(__FILE__, __LINE__);
@@ -758,7 +759,7 @@ bool MySQLDB::select_hosts(char *iface, vector<vector<string> >& strVec){
     bool res = false;
     char sql[128];
 
-    // We are not connected to MySQL: return -2
+    // We are not connected to MySQL: return false
     if(!db_operational){
         return res;
     }
@@ -769,6 +770,19 @@ bool MySQLDB::select_hosts(char *iface, vector<vector<string> >& strVec){
     sprintf(sql, "SELECT * FROM host_leases WHERE IFACE='%s' ORDER BY END DESC LIMIT 512;", iface);
     // Error when executing the query ?
     if(((rc = mysql_query(&mysql, sql)) != 0) || ((result = mysql_store_result(&mysql)) == NULL)){
+        ntop->getTrace()->traceEvent(TRACE_ERROR, "MySQL error: [%s][%s]", get_last_db_error(&mysql), sql);
+        switch(mysql_errno(&mysql)) {
+        case CR_SERVER_GONE_ERROR:
+        case CR_SERVER_LOST:
+        	mysql_close(&mysql);
+        	if(m) m->unlock(__FILE__, __LINE__);
+        	connectToDB(&mysql, true);
+        	return(exec_sql_query(&mysql, sql, false));
+        	break;
+        default:
+        	ntop->getTrace()->traceEvent(TRACE_ERROR, "MySQL error: [%s][%s]", get_last_db_error(&mysql), sql);
+        	break;
+        }
         if(m){
             m->unlock(__FILE__, __LINE__);
         }
