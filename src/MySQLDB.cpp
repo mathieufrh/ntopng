@@ -59,7 +59,7 @@ void* MySQLDB::queryLoop() {
 	  return(NULL);
       }
     } else
-      sleep(1);    
+      sleep(1);
   }
 
   mysql_close(&mysql_alt);
@@ -157,6 +157,18 @@ bool MySQLDB::createDBSchema() {
 	     "/*!50100 PARTITION BY HASH (`FIRST_SWITCHED`)"
 	     "PARTITIONS 32 */",
 	     ntop->getPrefs()->get_mysql_tablename());
+
+    /* 2.3 - Create table if missing [host_leases] */
+    snprintf(sql, sizeof(sql), "CREATE TABLE IF NOT EXISTS `host_leases` ("
+            "`idx` int(11) NOT NULL AUTO_INCREMENT,"
+            "`MAC` VARCHAR(17) DEFAULT NULL,"
+            "`VLAN_ID` smallint(5) unsigned DEFAULT NULL,"
+            "`IP` varchar(48) DEFAULT NULL,"
+            "`IFACE` varchar(16) DEFAULT NULL,"
+            "`START` int(10) unsigned DEFAULT NULL,"
+            "`END` int(10) unsigned DEFAULT NULL,"
+            "KEY `idx` (`idx`,`MAC`)"
+            ") ENGINE=InnoDB AUTO_INCREMENT=1 CHARSET=utf8");
 
     if(exec_sql_query(&mysql, sql, true) < 0) {
       ntop->getTrace()->traceEvent(TRACE_ERROR, "MySQL error: %s\n", get_last_db_error(&mysql));
@@ -735,4 +747,57 @@ int MySQLDB::exec_sql_query(lua_State *vm, char *sql, bool limitRows) {
   if(m) m->unlock(__FILE__, __LINE__);
 
   return(0);
+}
+
+/* ******************************************* */
+
+bool MySQLDB::select_hosts(char *iface, vector<vector<string> >& strVec){
+    MYSQL_RES *result;
+    MYSQL_ROW row;
+    int rc;
+    bool res = false;
+    char sql[128];
+
+    // We are not connected to MySQL: return -2
+    if(!db_operational){
+        return res;
+    }
+
+    if(m){
+        m->lock(__FILE__, __LINE__);
+    }
+    sprintf(sql, "SELECT * FROM host_leases WHERE IFACE='%s' ORDER BY END DESC LIMIT 512;", iface);
+    // Error when executing the query ?
+    if(((rc = mysql_query(&mysql, sql)) != 0) || ((result = mysql_store_result(&mysql)) == NULL)){
+        if(m){
+            m->unlock(__FILE__, __LINE__);
+        }
+        return res;
+    }
+    ntop->getTrace()->traceEvent(TRACE_INFO, "Successfully executed '%s'", sql);
+
+    if(mysql_num_rows(result) > 0){
+        res = true;
+        int numfields = mysql_num_fields(result);
+        strVec.resize(mysql_num_rows(result));
+        for(u_int8_t i = 0; i < mysql_num_rows(result); ++i){
+            strVec[i].resize(numfields);
+        }
+        int r = 0;
+        while((row = mysql_fetch_row(result))){
+            for(int c = 0; c < numfields; c++){
+                char *val = row[c];
+                strVec[r][c] = strdup(val);
+            }
+            r++;
+        }
+    }
+
+    mysql_free_result(result);
+
+    if(m){
+        m->unlock(__FILE__, __LINE__);
+    }
+
+    return res;
 }

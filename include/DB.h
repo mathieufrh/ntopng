@@ -32,11 +32,12 @@ class DB {
  public:
   DB(NetworkInterface *_iface = NULL);
   virtual ~DB();
-  
+
   virtual bool dumpFlow(time_t when, bool partial_dump, Flow *f, char *json);
   virtual int exec_sql_query(lua_State *vm, char *sql, bool limit_rows);
   virtual void startDBLoop();
   virtual bool createDBSchema() {return false; /* override in non-schemaless subclasses */};
+  virtual bool select_hosts(char *iface, vector<vector<string> >& strVec);
 };
 
 #endif /* _DB_CLASS_H_ */

@@ -47,6 +47,7 @@ class MySQLDB : public DB {
   bool dumpFlow(time_t when, bool partial_dump, Flow *f, char *json);
   int exec_sql_query(lua_State *vm, char *sql, bool limitRows);
   void startDBLoop();
+  bool select_hosts(char *iface, vector<vector<string> >& strVec);
 };
 
 #endif /* _MYSQL_DB_CLASS_H_ */
