@@ -477,6 +477,13 @@
 // MySQL-related defined
 #define MYSQL_MAX_NUM_FIELDS  255
 #define MYSQL_MAX_NUM_ROWS    999
+#define COLUMN_IDX            0
+#define COLUMN_MAC            1
+#define COLUMN_VLAN           2
+#define COLUMN_IP             3
+#define COLUMN_IFACE          4
+#define COLUMN_START          5
+#define COLUMN_END            6
 
 /* GRE (Generic Route Encapsulation) */
 #ifndef IPPROTO_GRE
