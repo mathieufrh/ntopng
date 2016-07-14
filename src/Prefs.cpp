@@ -439,7 +439,7 @@ int Prefs::setOption(int optkey, char *optarg) {
       if(optarg)
 	snprintf(p, len-1, "--%s \"%s\" ", opt, optarg);
       else
-	snprintf(p, len-1, "--%s ", opt);      
+	snprintf(p, len-1, "--%s ", opt);
     } else {
       if(optarg)
 	snprintf(p, len-1, "-%c %s ", optkey, optarg);
@@ -1090,7 +1090,7 @@ void Prefs::lua(lua_State* vm) {
   lua_push_int_table_entry(vm, "housekeeping_frequency", housekeeping_frequency);
 
   lua_push_str_table_entry(vm, "instance_name", instance_name ? instance_name : (char*)"");
-  
+
 #ifdef NTOPNG_PRO
   if(ntop->getNagios()) ntop->getNagios()->lua(vm);
 
