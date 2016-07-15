@@ -1024,6 +1024,8 @@ void Prefs::add_network_interface(char *name, char *description) {
   int id = Utils::ifname2id(name);
 
   if(id < (MAX_NUM_INTERFACES-1)) {
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[33mAdded network interface %s from Prefs::add_network_interface\x1B[0m", name);
     ifNames[id].name = strdup(!strncmp(name, "-", 1) ? "stdin" : name);
     ifNames[id].description = strdup(description ? description : name);
     num_interfaces++;

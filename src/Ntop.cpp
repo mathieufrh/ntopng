@@ -294,9 +294,30 @@ void Ntop::start() {
   loadLocalInterfaceAddress();
 
   for(int i=0; i<num_defined_interfaces; i++) {
-	iface[i]->restoreLocalHosts();
+	//iface[i]->restoreLocalHosts();
     iface[i]->allocateNetworkStats();
     iface[i]->startPacketPolling();
+  }
+
+  for(int i=0; i<num_defined_interfaces; i++) {
+	  /*
+      ntop->getTrace()->traceEvent(TRACE_NORMAL,
+    		  "\x1B[34mSelecting DB name for interface %s from Ntop::start\x1B[0m", iface[i]->get_name());
+      if(!iface[i]->selectDBName()){
+          ntop->getTrace()->traceEvent(TRACE_ERROR, "Unable to select database name, quitting.");
+          exit(EXIT_FAILURE);
+      }
+      */
+      while(!MySQLDB::isDbCreated()){
+          getTrace()->traceEvent(TRACE_NORMAL,
+        		  "\x1B[34mDB on interface %s starting... Wait\x1B[0m", iface[i]->get_name());
+          sleep(1);
+      }
+      ntop->getTrace()->traceEvent(TRACE_NORMAL,
+    		  "\x1B[34mDB on interface %s is CREATED\x1B[0m", iface[i]->get_name());
+      ntop->getTrace()->traceEvent(TRACE_NORMAL,
+    		  "\x1B[34mDB on interface %s created? %s\x1B[0m", iface[i]->get_name(), MySQLDB::isDbCreated()? "yes":"no");
+      iface[i]->restoreLocalHosts();
   }
 
   sleep(2);

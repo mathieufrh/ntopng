@@ -30,40 +30,76 @@ static void* queryLoop(void* ptr) {
 /* **************************************************** */
 
 void* MySQLDB::queryLoop() {
-  Redis *r = ntop->getRedis();
-  MYSQL mysql_alt;
-  char sql[CONST_MAX_SQL_QUERY_LEN];
+	Redis *r = ntop->getRedis();
+	MYSQL mysql_alt;
+	char sql[CONST_MAX_SQL_QUERY_LEN];
 
-  while(!ntop->getGlobals()->isShutdown()
-	&& !MySQLDB::isDbCreated() /* wait until the db has been created */) {
-    sleep(1);
-  }
+	while(!ntop->getGlobals()->isShutdown()
+			&& !MySQLDB::isDbCreated() /* wait until the db has been created */) {
+		ntop->getTrace()->traceEvent(TRACE_NORMAL,
+				"\x1B[34m  >>> DB on interface %s not CREATED yet. Wait. <<<\x1B[0m", iface->get_name());
+		sleep(1);
+	}
+	ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			"\x1B[34m  >>> DB on interface %s successfully CREATED <<<\x1B[0m", iface->get_name());
 
-  if(ntop->getGlobals()->isShutdown() || !connectToDB(&mysql_alt, true))
-    return(NULL);
+	ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			"\x1B[34m  >>> Trying to connect to DB with DB name on interface %s from queryLoop <<<\x1B[0m",
+			iface->get_name());
+	if(ntop->getGlobals()->isShutdown() || !connectToDB(&mysql_alt, true)){
+		ntop->getTrace()->traceEvent(TRACE_NORMAL,
+				"\x1B[34m  >>> Fail to connect to DB on interface %s from queryLoop: STOP <<<\x1B[0m", iface->get_name());
+		return(NULL);
+	}
 
-  while(!ntop->getGlobals()->isShutdown()) {
-    int rc = r->lpop(CONST_SQL_QUEUE, sql, sizeof(sql));
+	while(!ntop->getGlobals()->isShutdown()) {
+		int rc = r->lpop(CONST_SQL_QUEUE, sql, sizeof(sql));
 
-    if(rc == 0) {
-      if (strlen(sql) >= CONST_MAX_SQL_QUERY_LEN - 1){
-	ntop->getTrace()->traceEvent(TRACE_WARNING,
-				     "Tried to execute a query longer than %u. Skipping.",
-				     CONST_MAX_SQL_QUERY_LEN - 2);
-	continue;  // prevents overflown queries to generate mysql errors
-      } else if((rc = exec_sql_query(&mysql_alt, sql, true, true, false)) < 0) {
-	ntop->getTrace()->traceEvent(TRACE_ERROR, "MySQL error: %s [rc=%d]", get_last_db_error(&mysql_alt), rc);
-	ntop->getTrace()->traceEvent(TRACE_ERROR, "%s", sql);
+		if(rc == 0) {
+			ntop->getTrace()->traceEvent(TRACE_NORMAL,
+					"\x1B[34m  >>> Executing query %s on interface %s from queryLoop <<<\x1B[0m", sql, iface->get_name());
+			if (strlen(sql) >= CONST_MAX_SQL_QUERY_LEN - 1){
+				ntop->getTrace()->traceEvent(TRACE_WARNING,
+						"Tried to execute a query longer than %u. Skipping.",
+						CONST_MAX_SQL_QUERY_LEN - 2);
+				continue;  // prevents overflown queries to generate mysql errors
+			} else if((rc = exec_sql_query(&mysql_alt, sql, true, false, true)) < 0) {
+				ntop->getTrace()->traceEvent(TRACE_ERROR, "MySQL error: %s [%s] [rc=%d]",
+						get_last_db_error(&mysql_alt), sql, rc);
+				ntop->getTrace()->traceEvent(TRACE_NORMAL,
+						"\x1B[32m  >>> Closing MySQL connection on interface %s from queryLoop <<<\x1B[0m",
+						iface->get_name());
+				mysql_close(&mysql_alt);
+				ntop->getTrace()->traceEvent(TRACE_NORMAL,
+						"\x1B[34m  >>> Trying to connect to DB with DB name on interface %s from queryLoop <<<\x1B[0m",
+						iface->get_name());
+				if(!connectToDB(&mysql_alt, true)){
+					ntop->getTrace()->traceEvent(TRACE_NORMAL,
+							"\x1B[34m  >>> Fail to connect to DB on interface %s from queryLoop: STOP <<<\x1B[0m",
+							iface->get_name());
+					return(NULL);
+				}
+			}
+		} else
+			sleep(1);
+	}
+
+	ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			"\x1B[32m  >>> Closing MySQL connection on interface %s from queryLoop <<<\x1B[0m", iface->get_name());
 	mysql_close(&mysql_alt);
-	if(!connectToDB(&mysql_alt, true))
-	  return(NULL);
-      }
-    } else
-      sleep(1);
-  }
+	return(NULL);
+}
 
-  mysql_close(&mysql_alt);
-  return(NULL);
+/* ******************************************* */
+
+bool MySQLDB::selectDBName(){
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL, "\x1B[34mSelecting database %s on interface %s from selectDBName\x1B[0m",
+			  ntop->getPrefs()->get_mysql_dbname(), iface->get_name());
+    if(mysql_select_db(&mysql, ntop->getPrefs()->get_mysql_dbname())) {
+      ntop->getTrace()->traceEvent(TRACE_ERROR, "MySQL error: %s\n", get_last_db_error(&mysql));
+      return false;
+    }
+    return true;
 }
 
 /* ******************************************* */
@@ -72,6 +108,8 @@ bool MySQLDB::createDBSchema() {
   char sql[CONST_MAX_SQL_QUERY_LEN];
 
   if(iface) {
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[34mTrying to connect to DB on interface %s from createDBSchema\x1B[0m", iface->get_name());
     if(connectToDB(&mysql, false) == false){
       ntop->getTrace()->traceEvent(TRACE_ERROR, "Unable to connect: %s\n", get_last_db_error(&mysql));
       return false;
@@ -392,12 +430,18 @@ bool MySQLDB::createDBSchema() {
   }
 
   db_created = true;
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[34m!!! Schema created or updated on interface %s from createDBSchema !!!\x1B[0m", iface->get_name());
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[34m!!! db_created = true on interface %s !!!\x1B[0m", iface->get_name());
   return true;
 }
 
 /* ******************************************* */
 
 MySQLDB::MySQLDB(NetworkInterface *_iface) : DB(_iface) {
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[34mTrying to connect to DB on interface eth0 from MySQLDB:MySQLDB\x1B[0m", _iface->get_name());
   connectToDB(&mysql, false);
 }
 
@@ -410,6 +454,8 @@ MySQLDB::~MySQLDB() {
 /* ******************************************* */
 
 void MySQLDB::startDBLoop() {
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[34mCalling queryLoop on interface %s from startDBLoop\x1B[0m", iface->get_name());
   pthread_create(&queryThreadLoop, NULL, ::queryLoop, (void*)this);
 }
 
@@ -438,6 +484,8 @@ char* MySQLDB::get_insert_into_values(IPVersion vers) {
 /* ******************************************* */
 
 bool MySQLDB::dumpFlow(time_t when, bool partial_dump, Flow *f, char *json) {
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[34mDumping flows for interface %s from dumpFlow\x1B[0m", iface->get_name());
   char sql[CONST_MAX_SQL_QUERY_LEN], cli_str[64], srv_str[64], *json_buf;
   u_int32_t packets, first_seen, last_seen;
   u_int32_t bytes_cli2srv, bytes_srv2cli;
@@ -545,6 +593,8 @@ bool MySQLDB::dumpFlow(time_t when, bool partial_dump, Flow *f, char *json) {
   }
   free(json_buf);
 
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[34mPushing INSERT query for interface %s from dumpFlow\x1B[0m", iface->get_name());
   ntop->getRedis()->lpush(CONST_SQL_QUEUE, sql, CONST_MAX_MYSQL_QUEUE_LEN);
 
   return(true);
@@ -564,13 +614,22 @@ bool MySQLDB::connectToDB(MYSQL *conn, bool select_db) {
 
   if(m) m->lock(__FILE__, __LINE__);
 
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[32mInitializing MySQL connection on interface %s from connectToDB\x1B[0m", iface->get_name());
   if(mysql_init(conn) == NULL) {
     ntop->getTrace()->traceEvent(TRACE_ERROR, "Failed to initialize MySQL connection");
     if(m) m->unlock(__FILE__, __LINE__);
     return(false);
   }
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[32mSuccessfully initialized MySQL connection on interface %s from connectToDB\x1B[0m",
+			  iface->get_name());
 
-  if(ntop->getPrefs()->get_mysql_host()[0] == '/') /* Use socket */
+  if(ntop->getPrefs()->get_mysql_host()[0] == '/'){ /* Use socket */
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[32mReally connecting to MySQL from interface %s using %s, %s, %s, %s, %s\x1B[0m",
+			  iface->get_name(),ntop->getPrefs()->get_mysql_user(),ntop->getPrefs()->get_mysql_pw(),
+			  dbname, "0", ntop->getPrefs()->get_mysql_host(),flags);
     rc = mysql_real_connect(conn,
 			    NULL, /* Host */
 			    ntop->getPrefs()->get_mysql_user(),
@@ -578,7 +637,13 @@ bool MySQLDB::connectToDB(MYSQL *conn, bool select_db) {
 			    dbname,
 			    0, ntop->getPrefs()->get_mysql_host() /* socket */,
 			    flags);
-  else
+  }
+  else{
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[32mReally connecting to MySQL from interface %s using %s, %s, %s, %s, %s\x1B[0m",
+			  iface->get_name(),ntop->getPrefs()->get_mysql_host(),
+			  ntop->getPrefs()->get_mysql_user(),ntop->getPrefs()->get_mysql_pw(),dbname,
+			  "3306", ntop->getPrefs()->get_mysql_host(),flags);
     rc = mysql_real_connect(conn,
 			    ntop->getPrefs()->get_mysql_host(),
 			    ntop->getPrefs()->get_mysql_user(),
@@ -586,12 +651,14 @@ bool MySQLDB::connectToDB(MYSQL *conn, bool select_db) {
 			    dbname,
 			    3306 /* port */,
 			    NULL /* socket */, flags);
+  }
 
   if(rc == NULL) {
-    ntop->getTrace()->traceEvent(TRACE_ERROR, "Failed to connect to MySQL: %s [%s:%s]\n",
+    ntop->getTrace()->traceEvent(TRACE_ERROR, "Failed to connect to MySQL: %s [%s:%s:%s]\n",
 				 mysql_error(conn),
 				 ntop->getPrefs()->get_mysql_host(),
-				 ntop->getPrefs()->get_mysql_user());
+				 ntop->getPrefs()->get_mysql_user(),
+				 dbname);
 
     if(m) m->unlock(__FILE__, __LINE__);
     return(false);
@@ -640,6 +707,8 @@ int MySQLDB::exec_sql_query(MYSQL *conn, char *sql,
 	mysql_close(conn);
 	if(doLock && m) m->unlock(__FILE__, __LINE__);
 
+	ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			"Trying to connect to DB with DB name on interface %s from exec_sql_query", iface->get_name());
 	connectToDB(conn, true);
 
 	return(exec_sql_query(conn, sql, false));
@@ -654,14 +723,17 @@ int MySQLDB::exec_sql_query(MYSQL *conn, char *sql,
 
     rc = -1;
   } else {
-    ntop->getTrace()->traceEvent(TRACE_INFO, "Successfully executed '%s'", sql);
+    ntop->getTrace()->traceEvent(TRACE_NORMAL, "Successfully executed '%s'", sql);
     // we want to return the number of rows which is more informative
     // than a simple 0
-    if((result = mysql_store_result(&mysql)) == NULL)
+    if((result = mysql_store_result(&mysql)) == NULL){
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[32mUnable to store result for query %s on interface %s\x1B[0m", sql, iface->get_name());
       rc = 0;  // unable to retrieve the result but still the query succeded
+    }
     else {
       rc = mysql_num_rows(result);
-      ntop->getTrace()->traceEvent(TRACE_INFO,
+      ntop->getTrace()->traceEvent(TRACE_NORMAL,
 				   "Current result set has %lu rows",
 				   (unsigned long)rc);
       mysql_free_result(result);
@@ -691,6 +763,8 @@ int MySQLDB::exec_sql_query(lua_State *vm, char *sql, bool limitRows) {
     /* retry */
     mysql_close(&mysql);
     if(m) m->unlock(__FILE__, __LINE__);
+	ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			"Trying to connect to DB with DB name on interface %s from exec_sql_query", iface->get_name());
     connectToDB(&mysql, true);
 
     if(!db_operational)
@@ -753,41 +827,45 @@ int MySQLDB::exec_sql_query(lua_State *vm, char *sql, bool limitRows) {
 /* ******************************************* */
 
 bool MySQLDB::select_hosts(char *iface, vector<vector<string> >& strVec){
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[34mSelecting hosts for interface %s from select_hosts\x1B[0m", iface);
+#endif
+  char sql[CONST_MAX_SQL_QUERY_LEN];
+
+  if(!MySQLDB::db_created)
+    return(false);
+
+  snprintf(sql, sizeof(sql), "SELECT * FROM host_leases WHERE IFACE='%s' ORDER BY END DESC LIMIT 512;", iface);
+
+
     MYSQL_RES *result;
     MYSQL_ROW row;
     int rc;
     bool res = false;
-    char sql[128];
 
     // We are not connected to MySQL: return false
     if(!db_operational){
         return res;
     }
 
+
+
     if(m){
         m->lock(__FILE__, __LINE__);
     }
+
     sprintf(sql, "SELECT * FROM host_leases WHERE IFACE='%s' ORDER BY END DESC LIMIT 512;", iface);
-    // Error when executing the query ?
+
     if(((rc = mysql_query(&mysql, sql)) != 0) || ((result = mysql_store_result(&mysql)) == NULL)){
         ntop->getTrace()->traceEvent(TRACE_ERROR, "MySQL error: [%s][%s]", get_last_db_error(&mysql), sql);
-        switch(mysql_errno(&mysql)) {
-        case CR_SERVER_GONE_ERROR:
-        case CR_SERVER_LOST:
-        	mysql_close(&mysql);
-        	if(m) m->unlock(__FILE__, __LINE__);
-        	connectToDB(&mysql, true);
-        	return(exec_sql_query(&mysql, sql, false));
-        	break;
-        default:
-        	ntop->getTrace()->traceEvent(TRACE_ERROR, "MySQL error: [%s][%s]", get_last_db_error(&mysql), sql);
-        	break;
-        }
         if(m){
             m->unlock(__FILE__, __LINE__);
         }
         return res;
     }
+
+
+
     ntop->getTrace()->traceEvent(TRACE_INFO, "Successfully executed '%s'", sql);
 
     if(mysql_num_rows(result) > 0){
@@ -814,4 +892,5 @@ bool MySQLDB::select_hosts(char *iface, vector<vector<string> >& strVec){
     }
 
     return res;
+
 }

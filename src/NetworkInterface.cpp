@@ -129,8 +129,11 @@ NetworkInterface::NetworkInterface(const char *name) {
 
     running = false, sprobe_interface = false, inline_interface = false;
 
-    if(ntop->getPrefs()->do_dump_flows_on_mysql())
+    if(ntop->getPrefs()->do_dump_flows_on_mysql()){
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[34mCreating new MySQLDB for %s from NetworkInterface::NetworkInterface\x1B[0m", name);
       db = new MySQLDB(this);
+    }
 
     checkIdle();
     ifSpeed = Utils::getMaxIfSpeed(name);

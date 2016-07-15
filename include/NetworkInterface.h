@@ -360,6 +360,7 @@ class NetworkInterface {
 		      u_int32_t last_pps, u_int32_t last_bps);
   void getFlowsStatus(lua_State *vm);
   void startDBLoop() { if(db) db->startDBLoop(); };
+  inline bool selectDBName() {if(db) {return db->selectDBName();} return false;};
   inline bool createDBSchema() {if(db) {return db->createDBSchema();} return false;};
   inline void getFlowDevices(lua_State *vm) { if(interfaceStats) interfaceStats->luaDeviceList(vm); else lua_newtable(vm); };
   inline void getFlowDeviceInfo(lua_State *vm, u_int32_t deviceIP) { if(interfaceStats) interfaceStats->luaDeviceInfo(vm, deviceIP); else lua_newtable(vm); };

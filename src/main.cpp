@@ -141,6 +141,8 @@ int main(int argc, char *argv[])
     try {
       /* [ zmq-collector.lua@tcp://127.0.0.1:5556 ] */
       if(!strcmp(ifName, "dummy")) {
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[33mCreating dummy interface %s from main\x1B[0m", ifName);
 	iface = new DummyInterface();
       } else if((strstr(ifName, "tcp://") || strstr(ifName, "ipc://"))) {
 	char *at = strchr(ifName, '@');
@@ -151,32 +153,48 @@ int main(int argc, char *argv[])
 	else
 	  endpoint = ifName;
 
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[33mCreating collector interface %s from main\x1B[0m", ifName);
 	iface = new CollectorInterface(endpoint);
 #if defined(HAVE_PF_RING) && (!defined(__mips)) && (!defined(__arm__))
       } else if(strstr(ifName, "zcflow:")) {
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[34mCreating ZC collector interface %s from main\x1B[0m", ifName);
 	iface = new ZCCollectorInterface(ifName);
 #endif
       } else {
 	iface = NULL;
 
 #ifdef NTOPNG_PRO
-	if(strncmp(ifName, "bridge:", 7) == 0)
+	if(strncmp(ifName, "bridge:", 7) == 0){
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[33mCreating packet bridge interface %s from main\x1B[0m", ifName);
 	  iface = new PacketBridge(ifName);
+	}
 #endif
 
 #if defined(HAVE_NETFILTER) && defined(NTOPNG_PRO)
-        if(iface == NULL && strncmp(ifName, "nf:", 3) == 0)
+        if(iface == NULL && strncmp(ifName, "nf:", 3) == 0){
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[33mCreating netfilter interface %s from main\x1B[0m", ifName);
           iface = new NetfilterInterface(ifName);
+        }
 #endif
 
 #if defined(__FreeBSD__) || defined(__NetBSD__) || defined(__OpenBSD__) || defined(__APPLE__)
-        if(iface == NULL && strncmp(ifName, "divert:", 7) == 0)
+        if(iface == NULL && strncmp(ifName, "divert:", 7) == 0){
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[33mCreating driver interface %s from main\x1B[0m", ifName);
           iface = new DivertInterface(ifName);
+        }
 #endif
-	
+
 #ifdef HAVE_PF_RING
-	if(iface == NULL)
+	if(iface == NULL){
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[33mCreating PF Ring interface %s from main\x1B[0m", ifName);
 	  iface = new PF_RINGInterface(ifName);
+	}
 #endif
       }
     } catch(...) {
@@ -185,6 +203,8 @@ int main(int argc, char *argv[])
 
     if(iface == NULL) {
       try {
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL, "\x1B[33m=======================================================\x1B[0m");
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL, "\x1B[33mCreating pcap interface %s from main\x1B[0m", ifName);
 	iface = new PcapInterface(ifName);
       } catch(...) {
 	ntop->getTrace()->traceEvent(TRACE_ERROR, "Unable to create interface %s", ifName);
@@ -196,14 +216,14 @@ int main(int argc, char *argv[])
       if(affinity != NULL) {
 	if(indexAffinity == 0)
 	  core_id_s = strtok(affinity, ",");
-	else 
+	else
 	  core_id_s = strtok(NULL, ",");
-            
+
 	if(core_id_s != NULL)
 	  core_id = atoi(core_id_s);
 	else
 	  core_id = indexAffinity;
-      
+
 	indexAffinity++;
 	iface->setCPUAffinity(core_id);
       }
@@ -229,14 +249,18 @@ int main(int argc, char *argv[])
     NetworkInterfaceView *iv;
 
     if((ifName = prefs->getInterfaceViewAt(i)) != NULL) {
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[33mCreating interface view %s from main\x1B[0m", ifName);
       iv = new NetworkInterfaceView(ifName);
 
       if(iv->get_numInterfaces() > 0) ntop->registerInterfaceView(iv); else delete iv;
     }
 
     if((ifName = prefs->getInterfaceAt(i)) != NULL) {
+	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			  "\x1B[33mCreating interface view %s from main\x1B[0m", ifName);
       iv = new NetworkInterfaceView(ifName);
-      
+
       if(iv->get_numInterfaces() > 0) ntop->registerInterfaceView(iv); else delete iv;
     }
   }
@@ -284,6 +308,8 @@ int main(int argc, char *argv[])
    */
   if(prefs->do_dump_flows_on_mysql()) {
     /* create the schema only one time, no need to call it for every interface */
+      ntop->getTrace()->traceEvent(TRACE_NORMAL,
+    		  "\x1B[34mCreating DB schema for interface %s from main\x1B[0m", ntop->getInterfaceAtId(0)->get_name());
     if(!ntop->getInterfaceAtId(0)->createDBSchema()){
       ntop->getTrace()->traceEvent(TRACE_ERROR,
 				   "Unable to create database schema, quitting.");
@@ -299,7 +325,7 @@ int main(int argc, char *argv[])
 
   snprintf(path, sizeof(path), "%s/.test", ntop->get_working_dir());
   ntop->fixPath(path);
-  
+
   if((fd = fopen(path, "w")) == NULL) {
     ntop->getTrace()->traceEvent(TRACE_ERROR,
 				 "Unable to write on %s [%s]: please specify a different directory (-d)",
@@ -309,7 +335,7 @@ int main(int argc, char *argv[])
     fclose(fd); /* All right */
     unlink(path);
   }
-  
+
   if(prefs->get_httpbl_key() != NULL)
     ntop->setHTTPBL(new HTTPBL(prefs->get_httpbl_key()));
 

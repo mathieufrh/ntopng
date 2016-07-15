@@ -42,6 +42,7 @@ class MySQLDB : public DB {
   ~MySQLDB();
 
   void* queryLoop();
+  bool selectDBName();
   bool createDBSchema();
   static volatile bool isDbCreated() {return db_created;};
   bool dumpFlow(time_t when, bool partial_dump, Flow *f, char *json);
