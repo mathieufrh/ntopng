@@ -826,70 +826,73 @@ int MySQLDB::exec_sql_query(lua_State *vm, char *sql, bool limitRows) {
 
 /* ******************************************* */
 
-bool MySQLDB::select_hosts(char *iface, vector<vector<string> >& strVec){
-	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
-			  "\x1B[34mSelecting hosts for interface %s from select_hosts\x1B[0m", iface);
-  char sql[CONST_MAX_SQL_QUERY_LEN];
+bool MySQLDB::select_hosts(vector<vector<string> >& strVec){
+	ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			"\x1B[34mSelecting hosts for interface %s from select_hosts\x1B[0m", iface->get_name());
+	char sql[CONST_MAX_SQL_QUERY_LEN];
+	MYSQL mysql_alt;
+	MYSQL_RES *result;
+	MYSQL_ROW row;
+	int rc;
+	bool res = false;
 
-  if(!MySQLDB::db_created)
-    return(false);
+	if(!MySQLDB::db_created){
+		ntop->getTrace()->traceEvent(TRACE_NORMAL,
+				"\x1B[34m  >>> DB on interface %s not CREATED yet. STOP. <<<\x1B[0m", iface->get_name());
+		return(false);
+	}
+	ntop->getTrace()->traceEvent(TRACE_NORMAL,
+			"\x1B[34m  >>> Trying to connect to DB with DB name on interface %s from select_hosts <<<\x1B[0m",
+			iface->get_name());
+	if(ntop->getGlobals()->isShutdown() || !connectToDB(&mysql_alt, true)){
+		ntop->getTrace()->traceEvent(TRACE_NORMAL,
+				"\x1B[34m  >>> Fail to connect to DB on interface %s from select_hosts: STOP <<<\x1B[0m",
+				iface->get_name());
+		return(false);
+	}
 
-  snprintf(sql, sizeof(sql), "SELECT * FROM host_leases WHERE IFACE='%s' ORDER BY END DESC LIMIT 512;", iface);
+	snprintf(sql, sizeof(sql), "SELECT * FROM host_leases WHERE IFACE='%s' ORDER BY END DESC LIMIT 512;",
+			iface->get_name());
 
+	if(m){
+		m->lock(__FILE__, __LINE__);
+	}
 
-    MYSQL_RES *result;
-    MYSQL_ROW row;
-    int rc;
-    bool res = false;
+	sprintf(sql, "SELECT * FROM host_leases WHERE IFACE='%s' ORDER BY END DESC LIMIT 512;", iface->get_name());
 
-    // We are not connected to MySQL: return false
-    if(!db_operational){
-        return res;
-    }
+	if(((rc = mysql_query(&mysql_alt, sql)) != 0) || ((result = mysql_store_result(&mysql_alt)) == NULL)){
+		ntop->getTrace()->traceEvent(TRACE_ERROR, "MySQL error: [%s][%s]", get_last_db_error(&mysql_alt), sql);
+		if(m){
+			m->unlock(__FILE__, __LINE__);
+		}
+		return res;
+	}
 
+	ntop->getTrace()->traceEvent(TRACE_INFO, "Successfully executed '%s'", sql);
 
+	if(mysql_num_rows(result) > 0){
+		res = true;
+		int numfields = mysql_num_fields(result);
+		strVec.resize(mysql_num_rows(result));
+		for(u_int8_t i = 0; i < mysql_num_rows(result); ++i){
+			strVec[i].resize(numfields);
+		}
+		int r = 0;
+		while((row = mysql_fetch_row(result))){
+			for(int c = 0; c < numfields; c++){
+				char *val = row[c];
+				strVec[r][c] = strdup(val);
+			}
+			r++;
+		}
+	}
 
-    if(m){
-        m->lock(__FILE__, __LINE__);
-    }
+	mysql_free_result(result);
 
-    sprintf(sql, "SELECT * FROM host_leases WHERE IFACE='%s' ORDER BY END DESC LIMIT 512;", iface);
+	if(m){
+		m->unlock(__FILE__, __LINE__);
+	}
 
-    if(((rc = mysql_query(&mysql, sql)) != 0) || ((result = mysql_store_result(&mysql)) == NULL)){
-        ntop->getTrace()->traceEvent(TRACE_ERROR, "MySQL error: [%s][%s]", get_last_db_error(&mysql), sql);
-        if(m){
-            m->unlock(__FILE__, __LINE__);
-        }
-        return res;
-    }
-
-
-
-    ntop->getTrace()->traceEvent(TRACE_INFO, "Successfully executed '%s'", sql);
-
-    if(mysql_num_rows(result) > 0){
-        res = true;
-        int numfields = mysql_num_fields(result);
-        strVec.resize(mysql_num_rows(result));
-        for(u_int8_t i = 0; i < mysql_num_rows(result); ++i){
-            strVec[i].resize(numfields);
-        }
-        int r = 0;
-        while((row = mysql_fetch_row(result))){
-            for(int c = 0; c < numfields; c++){
-                char *val = row[c];
-                strVec[r][c] = strdup(val);
-            }
-            r++;
-        }
-    }
-
-    mysql_free_result(result);
-
-    if(m){
-        m->unlock(__FILE__, __LINE__);
-    }
-
-    return res;
+	return res;
 
 }
