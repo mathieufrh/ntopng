@@ -38,7 +38,7 @@ class DB {
   virtual void startDBLoop();
   virtual bool selectDBName() {return false; /* override in non-schemaless subclasses */};
   virtual bool createDBSchema() {return false; /* override in non-schemaless subclasses */};
-  virtual bool select_hosts(char *iface, vector<vector<string> >& strVec);
+  virtual bool select_hosts(vector<vector<string> >& strVec);
 };
 
 #endif /* _DB_CLASS_H_ */

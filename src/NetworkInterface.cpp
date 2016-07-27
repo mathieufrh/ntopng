@@ -1824,7 +1824,7 @@ void NetworkInterface::restoreLocalHosts() {
 /* **************************************************** */
 
 bool NetworkInterface::sql_select_hosts(vector<vector<string> > &strVec){
-    return get_db()->select_hosts(ifname, strVec);
+    return get_db()->select_hosts(strVec);
 }
 
 /* **************************************************** */

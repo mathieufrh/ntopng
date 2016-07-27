@@ -58,7 +58,7 @@ void DB::startDBLoop() {
 
 /* ******************************************* */
 
-bool DB::select_hosts(char *iface, vector<vector<string> >& strVec){
+bool DB::select_hosts(vector<vector<string> >& strVec){
     ntop->getTrace()->traceEvent(TRACE_WARNING, "Internal error");
     return(false);
 }
