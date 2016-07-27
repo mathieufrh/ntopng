@@ -829,7 +829,6 @@ int MySQLDB::exec_sql_query(lua_State *vm, char *sql, bool limitRows) {
 bool MySQLDB::select_hosts(char *iface, vector<vector<string> >& strVec){
 	  ntop->getTrace()->traceEvent(TRACE_NORMAL,
 			  "\x1B[34mSelecting hosts for interface %s from select_hosts\x1B[0m", iface);
-#endif
   char sql[CONST_MAX_SQL_QUERY_LEN];
 
   if(!MySQLDB::db_created)
