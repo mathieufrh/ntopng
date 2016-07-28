@@ -32,4 +32,5 @@ ratings:
   - "**.rb"
 exclude_paths:
 - "httpdocs/js/"
+- "httpdocs/bootstrap/"
 - "doc/"
