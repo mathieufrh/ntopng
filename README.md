@@ -1,7 +1,10 @@
 ![ntop][ntopng_logo] ![ntop][ntop_logo]
 # ntopng 
 
-[![Build Status](https://travis-ci.org/ntop/ntopng.png?branch=dev)](https://travis-ci.org/ntop/ntopng)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/17ec91bb814a4cddb5e39f4c6767d7e7)](https://www.codacy.com/app/mathieu-frh/ntopng?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=mathieufrh/ntopng&amp;utm_campaign=Badge_Grade)
+[![Build Status](https://travis-ci.org/mathieufrh/ntopng.svg?branch=master)](https://travis-ci.org/mathieufrh/ntopng)
+[![Code Climate](https://codeclimate.com/github/mathieufrh/ntopng/badges/gpa.svg)](https://codeclimate.com/github/mathieufrh/ntopng)
+[![Issue Count](https://codeclimate.com/github/mathieufrh/ntopng/badges/issue_count.svg)](https://codeclimate.com/github/mathieufrh/ntopng)
 
 ## Introduction
 
